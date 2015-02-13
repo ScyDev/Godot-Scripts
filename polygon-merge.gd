@@ -166,3 +166,85 @@ func getLinesOfPoly(poly):
 	return linesOfPoly
 
 
+
+# http://gamedev.stackexchange.com/questions/26004/how-to-detect-2d-line-on-line-collision
+# does report perfectly parallel lines as intersecting!!!
+func doLinesIntersect(oneLine, otherLine):
+	var a = oneLine["start"]
+	var b = oneLine["end"]
+	var c = otherLine["start"]
+	var d = otherLine["end"]
+	
+	var denominator = ((b.x - a.x) * (d.y - c.y)) - ((b.y - a.y) * (d.x - c.x))
+	var numerator1 = ((a.y - c.y) * (d.x - c.x)) - ((a.x - c.x) * (d.y - c.y))
+	var numerator2 = ((a.y - c.y) * (b.x - a.x)) - ((a.x - c.x) * (b.y - a.y))
+	
+	# Detect coincident lines (has a problem, read below)
+	if (denominator == 0):
+		return (numerator1 == 0 && numerator2 == 0)
+	
+	var r = numerator1 / denominator
+	var s = numerator2 / denominator
+	
+	return ((r >= 0 && r <= 1) && (s >= 0 && s <= 1))
+
+
+# http://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
+# Returns 1 if the lines intersect, otherwise 0. In addition, if the lines 
+# intersect the intersection point may be stored in the floats i_x and i_y.
+func getLineIntersection(lineA, lineB):
+	var intersectionPoint = Vector2()
+	
+	var p0_x = lineA["start"].x
+	var p0_y = lineA["start"].y
+	var p1_x = lineA["end"].x
+	var p1_y = lineA["end"].y
+	var p2_x = lineB["start"].x
+	var p2_y = lineB["start"].y
+	var p3_x = lineB["end"].x
+	var p3_y = lineB["end"].y
+	
+	var s1_x = p1_x - p0_x
+	var s1_y = p1_y - p0_y
+	var s2_x = p3_x - p2_x
+	var s2_y = p3_y - p2_y
+	
+	var s = (-s1_y * (p0_x - p2_x) + s1_x * (p0_y - p2_y)) / (-s2_x * s1_y + s1_x * s2_y);
+	var t = ( s2_x * (p0_y - p2_y) - s2_y * (p0_x - p2_x)) / (-s2_x * s1_y + s1_x * s2_y);
+	
+	if (s >= 0 && s <= 1 && t >= 0 && t <= 1):
+		# Collision detected
+		intersectionPoint.x = p0_x + (t * s1_x)
+		intersectionPoint.y = p0_y + (t * s1_y)
+		
+		return intersectionPoint
+	
+	return null; # No collision
+
+
+
+func isPointInsideAnotherObstacle(point, parentPoly):
+	for poly in levelObstaclePolysStatic:
+		if (poly != parentPoly):
+			if (isPointInPoly(point, poly)):
+				return poly
+	
+	return null
+
+
+# http://stackoverflow.com/questions/8721406/how-to-determine-if-a-point-is-inside-a-2d-convex-polygon
+# http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
+func isPointInPoly(point, poly):
+	var i = 0
+	var k = poly.size()-1
+	var result = false
+	
+	while i < poly.size():
+		if ((poly[i].y > point.y) != (poly[k].y > point.y) && (point.x < (poly[k].x - poly[i].x) * (point.y - poly[i].y) / (poly[k].y-poly[i].y) + poly[i].x)):
+			result = !result
+		
+		k = i
+		i += 1
+	
+	return result
+
